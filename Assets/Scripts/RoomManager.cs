@@ -4,30 +4,30 @@ using UnityEngine;
 
 public class RoomManager : MonoBehaviour
 {
-    [SerializeField] GameObject roomPrefab;
-    [SerializeField] private int maxRooms = 15;
-    [SerializeField] private int minRooms = 10;
+    [SerializeField] GameObject streetPrefab;
+    [SerializeField] private int maxStreets = 15;
+    [SerializeField] private int minStreets = 10;
 
-    [SerializeField]int roomWidth = 20;
-    [SerializeField]int roomHeight = 12;
+    [SerializeField] int streetWidth = 20;
+    [SerializeField] int streetHeight = 12;
 
     [SerializeField] int gridSizeX = 10;
     [SerializeField] int gridSizeY = 10;
 
-    private List<GameObject> roomObjects = new List<GameObject>();
+    private List<GameObject> streetObjects = new List<GameObject>();
 
-    private Queue<Vector2Int> roomQueue = new Queue<Vector2Int>();
+    private Queue<Vector2Int> streetQueue = new Queue<Vector2Int>();
 
-    int[,] roomGrid;
+    int[,] streetGrid;
 
-    private int roomCount;
+    private int streetCount;
 
     private bool generationComplete = false;
 
     void Start()
     {
-        roomGrid = new int[gridSizeX, gridSizeY];
-        roomQueue = new Queue<Vector2Int>();
+        streetGrid = new int[gridSizeX, gridSizeY];
+        streetQueue = new Queue<Vector2Int>();
 
         Vector2Int initialRoomIndex = new Vector2Int(gridSizeX / 2, gridSizeY / 2);
         StartRoomGenerationFromRoom(initialRoomIndex);
@@ -35,9 +35,9 @@ public class RoomManager : MonoBehaviour
 
     void Update()
     {
-        if (roomQueue.Count > 0 && roomCount < maxRooms && !generationComplete)
+        if (streetQueue.Count > 0 && streetCount < maxStreets && !generationComplete)
         {
-            Vector2Int roomIndex = roomQueue.Dequeue();
+            Vector2Int roomIndex = streetQueue.Dequeue();
             int gridX = roomIndex.x;
             int gridY = roomIndex.y;
 
@@ -46,29 +46,29 @@ public class RoomManager : MonoBehaviour
             TryGenerateRoom(new Vector2Int(gridX, gridY + 1));
             TryGenerateRoom(new Vector2Int(gridX, gridY - 1));
         }
-        else if (roomCount < minRooms)
+        else if (streetCount < minStreets)
         {
             Debug.Log("Roomcount was less than the minimum amount of rooms. Try Again");
             RegenerateRooms();
         }
         else if (!generationComplete)
         {
-            Debug.Log($"Generation Complete, {roomCount} rooms generated");
+            Debug.Log($"Generation Complete, {streetCount} rooms generated");
             generationComplete = true;
         }
     }
 
     private void StartRoomGenerationFromRoom(Vector2Int roomIndex)
     {
-        roomQueue.Enqueue(roomIndex);
+        streetQueue.Enqueue(roomIndex);
         int x = roomIndex.x;
         int y = roomIndex.y;
-        roomGrid[x, y] = 1;
-        roomCount++;
-        var initialRoom = Instantiate(roomPrefab, GetPositionFromGridIndex(roomIndex), Quaternion.identity);
-        initialRoom.name = $"Room-{roomCount}";
+        streetGrid[x, y] = 1;
+        streetCount++;
+        var initialRoom = Instantiate(streetPrefab, GetPositionFromGridIndex(roomIndex), Quaternion.identity);
+        initialRoom.name = $"Room-{streetCount}";
         initialRoom.GetComponent<Room>().roomIndex = roomIndex;
-        roomObjects.Add(initialRoom);
+        streetObjects.Add(initialRoom);
     }
 
     private bool TryGenerateRoom(Vector2Int roomIndex)
@@ -76,7 +76,7 @@ public class RoomManager : MonoBehaviour
         int x = roomIndex.x;
         int y = roomIndex.y;
 
-        if (roomCount >= maxRooms)
+        if (streetCount >= maxStreets)
             return false;
 
         if (Random.value < 0.5 && roomIndex != Vector2Int.zero)
@@ -85,14 +85,14 @@ public class RoomManager : MonoBehaviour
         if (CountAdjacentRooms(roomIndex) > 1)
             return false;
 
-        roomQueue.Enqueue(roomIndex);
-        roomGrid[x, y] = 1;
-        roomCount++;
+        streetQueue.Enqueue(roomIndex);
+        streetGrid[x, y] = 1;
+        streetCount++;
 
-        var newRoom = Instantiate(roomPrefab, GetPositionFromGridIndex(roomIndex), Quaternion.identity);
+        var newRoom = Instantiate(streetPrefab, GetPositionFromGridIndex(roomIndex), Quaternion.identity);
         newRoom.GetComponent<Room>().roomIndex = roomIndex;
-        newRoom.name = $"Room-{roomCount}";
-        roomObjects.Add(newRoom);
+        newRoom.name = $"Room-{streetCount}";
+        streetObjects.Add(newRoom);
 
         OpenDoors(newRoom, x, y);
 
@@ -102,11 +102,11 @@ public class RoomManager : MonoBehaviour
 
     private void RegenerateRooms()
     {
-        roomObjects.ForEach(Destroy);
-        roomObjects.Clear();
-        roomGrid = new int[gridSizeX, gridSizeY];
-        roomQueue.Clear();
-        roomCount = 0;
+        streetObjects.ForEach(Destroy);
+        streetObjects.Clear();
+        streetGrid = new int[gridSizeX, gridSizeY];
+        streetQueue.Clear();
+        streetCount = 0;
         generationComplete = false;
 
         Vector2Int initialRoomIndex = new Vector2Int(gridSizeX / 2, gridSizeY / 2);
@@ -124,25 +124,25 @@ public class RoomManager : MonoBehaviour
         Room bottomRoomScript = GetRoomScriptAt(new Vector2Int(x, y - 1));
 
         //determine which doors to open based on neighbours
-        if (x > 0 && roomGrid[x - 1, y] != 0)
+        if (x > 0 && streetGrid[x - 1, y] != 0)
         {
             //Neighbour to the left
             newRoomScript.OpenDoor(Vector2Int.left);
             leftRoomScript.OpenDoor(Vector2Int.right);
         }
-        if (x < gridSizeX - 1 && roomGrid[x + 1, y] != 0)
+        if (x < gridSizeX - 1 && streetGrid[x + 1, y] != 0)
         {
             //Neighbor to the right
             newRoomScript.OpenDoor(Vector2Int.right);
             rightRoomScript.OpenDoor(Vector2Int.left);
         }
-        if (y > 0 && roomGrid[x, y - 1] != 0)
+        if (y > 0 && streetGrid[x, y - 1] != 0)
         {
             //Neighbour to the bottom
             newRoomScript.OpenDoor(Vector2Int.down);
             bottomRoomScript.OpenDoor(Vector2Int.up);
         }
-        if (y < gridSizeY - 1 && roomGrid[x, y + 1] != 0)
+        if (y < gridSizeY - 1 && streetGrid[x, y + 1] != 0)
         {
             //Neighbour to the top
             newRoomScript.OpenDoor(Vector2Int.up);
@@ -153,7 +153,7 @@ public class RoomManager : MonoBehaviour
 
     Room GetRoomScriptAt(Vector2Int roomIndex)
     {
-        GameObject roomObject = roomObjects.Find(room => room.GetComponent<Room>().roomIndex == roomIndex);
+        GameObject roomObject = streetObjects.Find(room => room.GetComponent<Room>().roomIndex == roomIndex);
         if (roomObject != null)
             return roomObject.GetComponent<Room>();
         return null;
@@ -165,10 +165,10 @@ public class RoomManager : MonoBehaviour
         int y = roomIndex.y;
         int count = 0;
 
-        if (x > 0 && roomGrid[x - 1, y] != 0) count++; //Left neighbour
-        if (x < gridSizeX - 1 && roomGrid[x + 1, y] != 0) count++; //Right neighbour 
-        if (y > 0 && roomGrid[x, y - 1] != 0) count++; //Bottom neighbour
-        if (y < gridSizeY - 1 && roomGrid[x, y + 1] != 0) count++; //Top neighbour
+        if (x > 0 && streetGrid[x - 1, y] != 0) count++; //Left neighbour
+        if (x < gridSizeX - 1 && streetGrid[x + 1, y] != 0) count++; //Right neighbour 
+        if (y > 0 && streetGrid[x, y - 1] != 0) count++; //Bottom neighbour
+        if (y < gridSizeY - 1 && streetGrid[x, y + 1] != 0) count++; //Top neighbour
 
         return count;
 
@@ -178,8 +178,8 @@ public class RoomManager : MonoBehaviour
     {
         int gridX = gridIndex.x;
         int gridY = gridIndex.y;
-        float isoX = (gridX - gridY) * (roomWidth / 2f);
-        float isoY = (gridX + gridY) * (roomHeight / 2f);
+        float isoX = (gridX - gridY) * (streetWidth / 2f);
+        float isoY = (gridX + gridY) * (streetHeight / 2f);
         return new Vector3(isoX, isoY, 0);
     }
 
@@ -193,7 +193,7 @@ public class RoomManager : MonoBehaviour
             for (int y = 0; y < gridSizeY; y++)
             {
                 Vector3 position = GetPositionFromGridIndex(new Vector2Int(x, y));
-                Gizmos.DrawWireCube(position, new Vector3(roomWidth, roomHeight, 1));
+                Gizmos.DrawWireCube(position, new Vector3(streetWidth, streetHeight, 1));
             }
         }
     }

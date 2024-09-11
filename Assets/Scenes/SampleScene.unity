@@ -3940,13 +3940,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 993321b7fae506b45b75c8a011879fc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  roomPrefab: {fileID: 7523070630855252441, guid: b6646b7f88367fd4ca986d8fe74a9326, type: 3}
-  maxRooms: 15
-  minRooms: 10
-  roomWidth: 50
-  roomHeight: 25
-  gridSizeX: 10
-  gridSizeY: 10
+  startStreetPrefab: {fileID: 7523070630855252441, guid: b6646b7f88367fd4ca986d8fe74a9326, type: 3}
+  street_0000:
+  - {fileID: 7523070630855252441, guid: 5f55d6c3a0aca334081a6ec138e7fd8f, type: 3}
+  street_0001:
+  - {fileID: 4440723048414814560, guid: dc08d899e49aedc4696c55a9f90854d9, type: 3}
+  street_0010:
+  - {fileID: 4440723048414814560, guid: ec1b52a1694af0e47ad1585eb3cffadb, type: 3}
+  street_0011:
+  - {fileID: 4440723048414814560, guid: 4f0a99bbaf89b9447961945556460976, type: 3}
+  street_0100:
+  - {fileID: 2395165809017504080, guid: a070c5a8c04759d498bfb8bde68e0368, type: 3}
+  street_0101:
+  - {fileID: 956191075732113295, guid: 7a3214c72fe95944390566fad90d726e, type: 3}
+  street_0110:
+  - {fileID: 3062082078053048658, guid: 79baeec4c9c7fc24285172891ab9c41d, type: 3}
+  street_0111:
+  - {fileID: 1368663904244070683, guid: da90051211985c14285e567a3b460ff6, type: 3}
+  street_1000:
+  - {fileID: 2395165809017504080, guid: c9dcb764444d9334f889926c04d65eb4, type: 3}
+  street_1001:
+  - {fileID: 7387024591422364672, guid: 2a233cf5cbc58d34f9367a891b48cb9d, type: 3}
+  street_1010:
+  - {fileID: 7520195911746678254, guid: 08c0f8574f252a6499ab9124cd60a0a3, type: 3}
+  street_1011:
+  - {fileID: 1819254396589368804, guid: 32dc3c823334fc148b5aad7665c619cc, type: 3}
+  street_1100:
+  - {fileID: 2395165809017504080, guid: c931812521f8ef84ea11e02561a152ed, type: 3}
+  street_1101:
+  - {fileID: 3822411898269412984, guid: f658b44eb4ce1884e93e18160d175037, type: 3}
+  street_1110:
+  - {fileID: 6301538495110614242, guid: 8e2a45df3c73063419c106dac5f1571f, type: 3}
+  street_1111:
+  - {fileID: 7523070630855252441, guid: b6646b7f88367fd4ca986d8fe74a9326, type: 3}
+  maxStreets: 23
+  minStreets: 21
+  streetWidth: 50
+  streetHeight: 25
+  gridSizeX: 20
+  gridSizeY: 15
 --- !u!1 &146761155
 GameObject:
   m_ObjectHideFlags: 0
@@ -27967,11 +27999,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 993321b7fae506b45b75c8a011879fc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  roomPrefab: {fileID: 0}
-  maxRooms: 15
-  minRooms: 10
-  roomWidth: 20
-  roomHeight: 12
+  startStreetPrefab: {fileID: 0}
+  street_0000: []
+  street_0001: []
+  street_0010: []
+  street_0011: []
+  street_0100: []
+  street_0101: []
+  street_0110: []
+  street_0111: []
+  street_1000: []
+  street_1001: []
+  street_1010: []
+  street_1011: []
+  street_1100: []
+  street_1101: []
+  street_1110: []
+  street_1111: []
+  maxStreets: 15
+  minStreets: 10
+  streetWidth: 20
+  streetHeight: 12
   gridSizeX: 15
   gridSizeY: 15
 --- !u!4 &673454039

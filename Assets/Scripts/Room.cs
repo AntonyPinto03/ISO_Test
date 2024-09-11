@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class Room : MonoBehaviour
 {
-    [SerializeField] GameObject topDoor;
-    [SerializeField] GameObject bottomDoor;
-    [SerializeField] GameObject leftDoor;
-    [SerializeField] GameObject rightDoor;
+    [SerializeField] GameObject northExit;
+    [SerializeField] GameObject southExit;
+    [SerializeField] GameObject westExit;
+    [SerializeField] GameObject eastExit;
 
     public Vector2Int roomIndex { set; get; }
 
@@ -15,19 +15,19 @@ public class Room : MonoBehaviour
     {
         if (direction == Vector2Int.up)
         {
-            topDoor.SetActive(true);
+            northExit.SetActive(true);
         }
         if (direction == Vector2Int.down)
         {
-            bottomDoor.SetActive(true);
+            southExit.SetActive(true);
         }
         if (direction == Vector2Int.left)
         {
-            leftDoor.SetActive(true);
+            westExit.SetActive(true);
         }
         if (direction == Vector2Int.right)
         {
-            rightDoor.SetActive(true);
+            eastExit.SetActive(true);
         }
     }
 }
