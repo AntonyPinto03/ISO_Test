@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Room : MonoBehaviour
 {
+    /* The exit gameobjects inside the street prefabs */
     [SerializeField] GameObject northExit;
     [SerializeField] GameObject southExit;
     [SerializeField] GameObject westExit;
@@ -11,7 +12,9 @@ public class Room : MonoBehaviour
 
     public Vector2Int roomIndex { set; get; }
 
-    public void OpenDoor(Vector2Int direction)
+
+    //this method opens the door in the specified direction by activating the corresponding game object associated with that direction.
+    public void OpenDoor(Vector2Int direction) 
     {
         if (direction == Vector2Int.up)
         {
