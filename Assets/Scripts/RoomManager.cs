@@ -6,7 +6,11 @@ public class RoomManager : MonoBehaviour
 {
     /* These are the prefabs for each type of street possible, but as for right now,
      it only instantiates the streetPrefab as a placeholder.*/
-    [SerializeField] GameObject streetPrefab;
+
+
+    [SerializeField] GameObject streetPrefab; //This is the only prefab that is being instantiated right now,
+                                              //we need to randomize the instantiation of the prefabs below
+                                              //depending on the neighbours of the street and their exits (OpenDoors)
     [SerializeField] GameObject[] N;
     [SerializeField] GameObject[] S;
     [SerializeField] GameObject[] E;
