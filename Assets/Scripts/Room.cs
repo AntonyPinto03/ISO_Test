@@ -4,33 +4,19 @@ using UnityEngine;
 
 public class Room : MonoBehaviour
 {
-    /* The exit gameobjects inside the street prefabs */
-    [SerializeField] GameObject northExit;
-    [SerializeField] GameObject southExit;
-    [SerializeField] GameObject westExit;
-    [SerializeField] GameObject eastExit;
+    public bool hasNorthExit = false;
+    public bool hasSouthExit = false;
+    public bool hasEastExit = false;
+    public bool hasWestExit = false;
 
-    public Vector2Int roomIndex { set; get; }
+    public Vector2Int roomIndex { get; set; }
 
-
-    //this method opens the door in the specified direction by activating the corresponding game object associated with that direction.
-    public void OpenDoor(Vector2Int direction) 
+    public void SetExits(RoomManager.ExitsKey exitsKey)
     {
-        if (direction == Vector2Int.up)
-        {
-            northExit.SetActive(true);
-        }
-        if (direction == Vector2Int.down)
-        {
-            southExit.SetActive(true);
-        }
-        if (direction == Vector2Int.left)
-        {
-            westExit.SetActive(true);
-        }
-        if (direction == Vector2Int.right)
-        {
-            eastExit.SetActive(true);
-        }
+        hasNorthExit = exitsKey.North;
+        hasSouthExit = exitsKey.South;
+        hasEastExit = exitsKey.East;
+        hasWestExit = exitsKey.West;
+        // Optionally, update visuals or logic based on exits
     }
 }

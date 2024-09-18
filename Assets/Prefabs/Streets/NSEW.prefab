@@ -1527,7 +1527,7 @@ TilemapRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
   m_MaxChunkCount: 16
@@ -4821,10 +4821,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e23285d5a6bedcf4eb532af6c97fb508, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  northExit: {fileID: 3473546685791154069}
-  southExit: {fileID: 6164535373450562844}
-  westExit: {fileID: 1058556588818731621}
-  eastExit: {fileID: 3496391815702062948}
+  hasNorthExit: 1
+  hasSouthExit: 1
+  hasEastExit: 1
+  hasWestExit: 1
 --- !u!1 &9021862280900927167
 GameObject:
   m_ObjectHideFlags: 0

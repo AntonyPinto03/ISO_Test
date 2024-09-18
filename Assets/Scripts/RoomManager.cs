@@ -4,256 +4,421 @@ using UnityEngine;
 
 public class RoomManager : MonoBehaviour
 {
-    /* These are the prefabs for each type of street possible, but as for right now,
-     it only instantiates the streetPrefab as a placeholder.*/
+    // Define the possible exits
+    public enum ExitDirection
+    {
+        North,
+        South,
+        East,
+        West
+    }
 
+    // Serializable class to map exits to prefabs
+    [System.Serializable]
+    public class ExitPrefabPair
+    {
+        public ExitsKey exitsKey;
+        public GameObject[] prefabs;
+    }
 
-    [SerializeField] GameObject streetPrefab; //This is the only prefab that is being instantiated right now,
-                                              //we need to randomize the instantiation of the prefabs below
-                                              //depending on the neighbours of the street and their exits (OpenDoors)
-    [SerializeField] GameObject[] N;
-    [SerializeField] GameObject[] S;
-    [SerializeField] GameObject[] E;
-    [SerializeField] GameObject[] W;
-    [SerializeField] GameObject[] NS;
-    [SerializeField] GameObject[] EW;
-    [SerializeField] GameObject[] NE;
-    [SerializeField] GameObject[] NW;
-    [SerializeField] GameObject[] SE;
-    [SerializeField] GameObject[] SW;
-    [SerializeField] GameObject[] NSW;
-    [SerializeField] GameObject[] NEW;
-    [SerializeField] GameObject[] NSE;
-    [SerializeField] GameObject[] SEW;
-    [SerializeField] GameObject[] NSEW;
+    [System.Serializable]
+    public class ExitsKey
+    {
+        public bool North;
+        public bool South;
+        public bool East;
+        public bool West;
+
+        // Override Equals and GetHashCode for dictionary key comparison
+        public override bool Equals(object obj)
+        {
+            if (obj is ExitsKey other)
+            {
+                return North == other.North && South == other.South && East == other.East && West == other.West;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            int hash = 17;
+            hash = hash * 23 + North.GetHashCode();
+            hash = hash * 23 + South.GetHashCode();
+            hash = hash * 23 + East.GetHashCode();
+            hash = hash * 23 + West.GetHashCode();
+            return hash;
+        }
+    }
+
+    [SerializeField] private ExitPrefabPair[] exitPrefabPairs;
+
+    private Dictionary<ExitsKey, GameObject[]> exitPrefabDict = new Dictionary<ExitsKey, GameObject[]>();
 
     [SerializeField] private int maxStreets = 15; // Maximum number of streets to generate
     [SerializeField] private int minStreets = 10; // Minimum number of streets to generate
 
-    [SerializeField] int streetWidth = 20;        // Width of the street
-    [SerializeField] int streetHeight = 12;       // Height of the street
+    [SerializeField] private int streetWidth = 20;        // Width of the street
+    [SerializeField] private int streetHeight = 12;       // Height of the street
 
-
-    private List<GameObject> streetObjects = new List<GameObject>(); // List to store the street objects 
-                                                                     // Every time a room is instantiated, it is added to this list
+    private List<GameObject> streetObjects = new List<GameObject>(); // List to store the street objects
 
     private Queue<Vector2Int> streetQueue = new Queue<Vector2Int>(); // Queue to store the rooms to be generated
 
-    [SerializeField] int gridSizeX;// size of the grid in the x axis
-    [SerializeField] int gridSizeY;// size of the grid in the y axis
-    int[,] streetGrid;             // 2D array to store the grid of the street
+    [SerializeField] private int gridSizeX; // size of the grid in the x-axis
+    [SerializeField] private int gridSizeY; // size of the grid in the y-axis
+    private RoomData[,] roomGrid;           // 2D array to store the grid of rooms
 
     private int streetCount; // Counter to keep track of the number of streets generated
 
     private bool generationComplete = false; // Boolean to check if the generation is complete
 
+    private Vector2Int[] directions = new Vector2Int[]
+    {
+        new Vector2Int(0, 1),   // North
+        new Vector2Int(0, -1),  // South
+        new Vector2Int(1, 0),   // East
+        new Vector2Int(-1, 0)   // West
+    };
+
+    private Dictionary<Vector2Int, ExitDirection> dirToExit = new Dictionary<Vector2Int, ExitDirection>
+    {
+        { new Vector2Int(0, 1), ExitDirection.North },
+        { new Vector2Int(0, -1), ExitDirection.South },
+        { new Vector2Int(1, 0), ExitDirection.East },
+        { new Vector2Int(-1, 0), ExitDirection.West }
+    };
+
+    private Dictionary<Vector2Int, ExitDirection> dirToOppositeExit = new Dictionary<Vector2Int, ExitDirection>
+    {
+        { new Vector2Int(0, 1), ExitDirection.South },
+        { new Vector2Int(0, -1), ExitDirection.North },
+        { new Vector2Int(1, 0), ExitDirection.West },
+        { new Vector2Int(-1, 0), ExitDirection.East }
+    };
+
+    private Dictionary<ExitDirection, Vector2Int> exitToDir = new Dictionary<ExitDirection, Vector2Int>
+    {
+        { ExitDirection.North, new Vector2Int(0, 1) },
+        { ExitDirection.South, new Vector2Int(0, -1) },
+        { ExitDirection.East, new Vector2Int(1, 0) },
+        { ExitDirection.West, new Vector2Int(-1, 0) }
+    };
+
+    // New variables to track the starting room, last room generated, and furthest room
+    private Vector2Int startingRoomIndex;
+    private RoomData lastRoomGenerated;
+    private RoomData furthestRoom;
+
     void Start()
     {
-        streetGrid = new int[gridSizeX, gridSizeY];
-        streetQueue = new Queue<Vector2Int>();
+        // Initialize the exitPrefabDict
+        foreach (var pair in exitPrefabPairs)
+        {
+            if (!exitPrefabDict.ContainsKey(pair.exitsKey))
+            {
+                exitPrefabDict.Add(pair.exitsKey, pair.prefabs);
+            }
+            else
+            {
+                Debug.LogWarning("Duplicate exit combination detected");
+            }
+        }
 
-        Vector2Int initialRoomIndex = new Vector2Int(gridSizeX / 2, gridSizeY / 4);
-        StartRoomGenerationFromRoom(initialRoomIndex);
+        roomGrid = new RoomData[gridSizeX, gridSizeY];
+        for (int x = 0; x < gridSizeX; x++)
+        {
+            for (int y = 0; y < gridSizeY; y++)
+            {
+                roomGrid[x, y] = new RoomData { gridIndex = new Vector2Int(x, y) };
+            }
+        }
+
+        startingRoomIndex = new Vector2Int(gridSizeX / 2, gridSizeY / 4);
+        StartRoomGenerationFromRoom(startingRoomIndex);
     }
 
     void Update()
     {
-        //If there are rooms in the queue and the street count is less than the maximum number of streets,
-        // and the generationcomplete is false, generate more rooms
-        if (streetQueue.Count > 0 && streetCount < maxStreets && !generationComplete)
+        if (streetQueue.Count > 0 && !generationComplete)
         {
             Vector2Int roomIndex = streetQueue.Dequeue();
-            int gridX = roomIndex.x;
-            int gridY = roomIndex.y;
-
-            //Try to generate a room to the left
-            TryGenerateRoom(new Vector2Int(gridX - 1, gridY));
-            //Try to generate a room to the right
-            TryGenerateRoom(new Vector2Int(gridX + 1, gridY));
-            //Try to generate a room to the top
-            TryGenerateRoom(new Vector2Int(gridX, gridY + 1));
-            //Try to generate a room to the bottom
-            TryGenerateRoom(new Vector2Int(gridX, gridY - 1));
+            TryGenerateRoom(roomIndex);
         }
-        //If the street count is less than the minimum number of streets, regenerate the rooms
-        else if (streetCount < minStreets)
+        else if (streetCount < minStreets && !generationComplete)
         {
-            Debug.Log("Roomcount was less than the minimum amount of rooms. Try Again");
+            Debug.Log("Street count was less than the minimum amount. Regenerating...");
             RegenerateRooms();
         }
-        //If the generation is complete, log the number of rooms generated
         else if (!generationComplete)
         {
-            Debug.Log($"Generation Complete, {streetCount} rooms generated");
             generationComplete = true;
 
-            // Get the reference to the last room generated
-            GameObject lastRoom = streetObjects[streetObjects.Count - 1];
-            Room lastRoomScript = lastRoom.GetComponent<Room>();
+            // Perform cleanup to remove exits leading to nowhere
+            CleanupExits();
 
-            // Log the details of the last room (this can be used to generate a boss or whatever later)
-            Debug.Log($"Last Room: {lastRoom.name}, Index: {lastRoomScript.roomIndex}");
+            // Find the furthest room from the starting room
+            float maxDistance = -1f;
+            RoomData furthestRoomData = null;
+
+            foreach (var roomData in roomGrid)
+            {
+                if (roomData.hasRoom)
+                {
+                    float distance = Vector2Int.Distance(startingRoomIndex, roomData.gridIndex);
+                    if (distance > maxDistance)
+                    {
+                        maxDistance = distance;
+                        furthestRoomData = roomData;
+                    }
+                }
+            }
+
+            // Log the results
+            Debug.Log($"Generation Complete, {streetCount} streets generated");
+
+            if (lastRoomGenerated != null)
+            {
+                Debug.Log($"Last Room Generated: Index {lastRoomGenerated.gridIndex}");
+            }
+            if (furthestRoomData != null)
+            {
+                Debug.Log($"Furthest Room from Start: Index {furthestRoomData.gridIndex}, Distance {maxDistance}");
+            }
         }
     }
 
     private void StartRoomGenerationFromRoom(Vector2Int roomIndex)
     {
-        //Enqueue the initial room
         streetQueue.Enqueue(roomIndex);
-
-        int x = roomIndex.x; // x coordinate of the room
-        int y = roomIndex.y; // y coordinate of the room
-
-        streetGrid[x, y] = 1; 
-        streetCount++;        // Increment the street count
-
-        //Instantiate the initial room (we have to randomize this), at the position of the grid index, with no rotation.
-        var initialRoom = Instantiate(streetPrefab, GetPositionFromGridIndex(roomIndex), Quaternion.identity);
-
-        //Name (in the hierarchy) of the instantiated street + the street count
-        initialRoom.name = $"Street-{streetCount}"; 
-
-        initialRoom.GetComponent<Room>().roomIndex = roomIndex;
-
-        // Add the initial room to the list of street objects
-        streetObjects.Add(initialRoom);
     }
 
-    
-    private bool TryGenerateRoom(Vector2Int roomIndex)
+    private void TryGenerateRoom(Vector2Int roomIndex)
     {
         int x = roomIndex.x;
         int y = roomIndex.y;
 
-        //If the street count is greater than or equal to the maximum number of streets, return false
-        if (streetCount >= maxStreets) 
-            return false;
+        // Check bounds
+        if (x < 0 || x >= gridSizeX || y < 0 || y >= gridSizeY)
+            return;
 
-        //This is basically saying that there is a 50% chance of not generating a room on whichever side there is next
-        //so there is variety in the generation
-        if (Random.value < 0.5 && roomIndex != Vector2Int.zero)
-            return false;
+        RoomData currentRoom = roomGrid[x, y];
 
-        //If the number of adjacent rooms is greater than 1, return false
-        if (CountAdjacentRooms(roomIndex) > 1) 
-            return false;
+        // If this room already has been processed, return
+        if (currentRoom.hasRoom)
+            return;
 
-        //Enqueue the next room 
-        streetQueue.Enqueue(roomIndex);
-        streetGrid[x, y] = 1;
-        //Increment the street count
+        currentRoom.hasRoom = true;
+
+        List<Vector2Int> availableDirs = new List<Vector2Int>();
+
+        // Check for existing neighbors and set exits accordingly
+        foreach (Vector2Int dir in directions)
+        {
+            int nx = x + dir.x;
+            int ny = y + dir.y;
+
+            // Check bounds
+            if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
+                continue;
+
+            RoomData neighborRoom = roomGrid[nx, ny];
+
+            // If neighbor room exists and has exit towards us
+            if (neighborRoom.hasRoom && neighborRoom.exits.Contains(dirToOppositeExit[dir]))
+            {
+                currentRoom.exits.Add(dirToExit[dir]);
+            }
+            else if (!neighborRoom.hasRoom)
+            {
+                // Only add direction if we can generate more rooms
+                int remainingRooms = maxStreets - streetCount - streetQueue.Count;
+                if (remainingRooms > 0)
+                {
+                    availableDirs.Add(dir);
+                }
+            }
+        }
+
+        // Decide how many exits we want to create
+        int maxExits = 2 - currentRoom.exits.Count;
+        if (maxExits <= 0)
+        {
+            maxExits = 0;
+        }
+
+        // Remaining rooms we can generate
+        int remainingRoomsAvailable = maxStreets - streetCount - streetQueue.Count;
+        int exitsToCreate = Mathf.Min(Random.Range(1, maxExits + 1), availableDirs.Count, remainingRoomsAvailable);
+
+        // Shuffle availableDirs
+        for (int i = 0; i < availableDirs.Count; i++)
+        {
+            Vector2Int temp = availableDirs[i];
+            int randomIndex = Random.Range(i, availableDirs.Count);
+            availableDirs[i] = availableDirs[randomIndex];
+            availableDirs[randomIndex] = temp;
+        }
+
+        // Check for adjacent rooms to prevent clusters of more than 3 rooms
+        int adjacentRooms = CountAdjacentRooms(roomIndex);
+        int maxRoomsToConnect = 3 - adjacentRooms;
+
+        exitsToCreate = Mathf.Min(exitsToCreate, maxRoomsToConnect);
+
+        for (int i = 0; i < exitsToCreate; i++)
+        {
+            Vector2Int dir = availableDirs[i];
+            int nx = x + dir.x;
+            int ny = y + dir.y;
+
+            RoomData neighborRoom = roomGrid[nx, ny];
+
+            // Set our exit towards the direction
+            currentRoom.exits.Add(dirToExit[dir]);
+
+            // Set neighbor's exit towards us
+            neighborRoom.exits.Add(dirToOppositeExit[dir]);
+
+            // Enqueue neighbor for processing if not already enqueued
+            if (!neighborRoom.enqueued)
+            {
+                neighborRoom.enqueued = true;
+                streetQueue.Enqueue(new Vector2Int(nx, ny));
+            }
+        }
+
+        // Now, create an ExitsKey for lookup
+        ExitsKey currentExitsKey = new ExitsKey
+        {
+            North = currentRoom.exits.Contains(ExitDirection.North),
+            South = currentRoom.exits.Contains(ExitDirection.South),
+            East = currentRoom.exits.Contains(ExitDirection.East),
+            West = currentRoom.exits.Contains(ExitDirection.West)
+        };
+
+        // Now, pick a prefab based on currentRoom.exits
+        GameObject[] possiblePrefabs;
+        if (exitPrefabDict.TryGetValue(currentExitsKey, out possiblePrefabs))
+        {
+            // Pick a random prefab
+            GameObject prefabToInstantiate = possiblePrefabs[Random.Range(0, possiblePrefabs.Length)];
+
+            // Instantiate the prefab
+            Vector3 position = GetPositionFromGridIndex(roomIndex);
+            GameObject roomInstance = Instantiate(prefabToInstantiate, position, Quaternion.identity, transform);
+
+
+            // Set the room index
+            Room roomScript = roomInstance.GetComponent<Room>();
+            roomScript.roomIndex = roomIndex;
+            roomScript.SetExits(currentExitsKey);
+
+            // Name the room
+            roomInstance.name = $"Street-{streetCount} {roomIndex}";
+
+            // Add to streetObjects list
+            streetObjects.Add(roomInstance);
+
+            // Assign to currentRoom
+            currentRoom.roomInstance = roomInstance;
+        }
+        else
+        {
+            // No prefab found for this exit combination
+            Debug.LogWarning($"No prefab found for exits: N-{currentExitsKey.North}, S-{currentExitsKey.South}, E-{currentExitsKey.East}, W-{currentExitsKey.West}");
+        }
+
+        // Increment streetCount
         streetCount++;
 
-        //If all the conditions above are met, instantiate the next room (this has to be randomized too because
-        //right now is instatiating the same streetPrefab) at the position of the grid index
-        var newRoom = Instantiate(streetPrefab, GetPositionFromGridIndex(roomIndex), Quaternion.identity);
-
-        //Set the room index of the new room to the room index
-        newRoom.GetComponent<Room>().roomIndex = roomIndex;
-        //Name (in the hierarchy) of the instantiated street + the street count
-        newRoom.name = $"Street-{streetCount}";
-        //Add the new room to the list of street objects
-        streetObjects.Add(newRoom);
-
-        //Open the doors of the new room based on the neighbours (this will probably be deleted later,
-        //but we can use the same logic to spawn the correct prefab instead.)
-        OpenDoors(newRoom, x, y);
-
-        //Return true if the room was generated successfully
-        return true;
+        // Keep track of the last room generated
+        lastRoomGenerated = currentRoom;
     }
 
-    //This method is called when the street count is less than the minimum number of streets
-    //basically it destroys all the streets and regenerates them so that the generation can start again
-    // and reach the minimum number of streets
+    private void CleanupExits()
+    {
+        foreach (var roomData in roomGrid)
+        {
+            if (roomData.hasRoom)
+            {
+                HashSet<ExitDirection> validExits = new HashSet<ExitDirection>();
+
+                int x = roomData.gridIndex.x;
+                int y = roomData.gridIndex.y;
+
+                foreach (ExitDirection exit in roomData.exits)
+                {
+                    Vector2Int dir = exitToDir[exit];
+                    int nx = x + dir.x;
+                    int ny = y + dir.y;
+
+                    // Check bounds
+                    if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
+                        continue;
+
+                    RoomData neighborRoom = roomGrid[nx, ny];
+
+                    // If neighbor exists and has an exit towards us
+                    if (neighborRoom.hasRoom && neighborRoom.exits.Contains(dirToOppositeExit[dir]))
+                    {
+                        validExits.Add(exit);
+                    }
+                }
+
+                // Update the room's exits to only include valid exits
+                roomData.exits = validExits;
+
+                // Update the room's ExitsKey
+                ExitsKey currentExitsKey = new ExitsKey
+                {
+                    North = roomData.exits.Contains(ExitDirection.North),
+                    South = roomData.exits.Contains(ExitDirection.South),
+                    East = roomData.exits.Contains(ExitDirection.East),
+                    West = roomData.exits.Contains(ExitDirection.West)
+                };
+
+                // Update the Room component to reflect the changes
+                if (roomData.roomInstance != null)
+                {
+                    Room roomScript = roomData.roomInstance.GetComponent<Room>();
+                    roomScript.SetExits(currentExitsKey);
+
+                    // Optionally, update the visuals of the room here
+                }
+            }
+        }
+    }
+
     private void RegenerateRooms()
     {
-        //Destroy all the street objects in the list
-        streetObjects.ForEach(Destroy);
-        //Clear the list of street objects
+        // Destroy all the street objects in the list
+        foreach (var obj in streetObjects)
+        {
+            Destroy(obj);
+        }
+        // Clear the list of street objects
         streetObjects.Clear();
-        //Clear the queue of street objects
-        streetGrid = new int[gridSizeX, gridSizeY];
+
+        // Reset the room grid
+        for (int x = 0; x < gridSizeX; x++)
+        {
+            for (int y = 0; y < gridSizeY; y++)
+            {
+                roomGrid[x, y] = new RoomData { gridIndex = new Vector2Int(x, y) };
+            }
+        }
+
+        // Clear the queue
         streetQueue.Clear();
-        //Reset the street count
+
+        // Reset the street count
         streetCount = 0;
-        //Set the generation complete to false
         generationComplete = false;
 
         Vector2Int initialRoomIndex = new Vector2Int(gridSizeX / 2, gridSizeY / 4);
-        //Start the room generation from the initial room index
         StartRoomGenerationFromRoom(initialRoomIndex);
     }
 
-    //This method opens the doors (child gameobject inside the prefabs)
-    //of the room based on the neighbours of the street
-    void OpenDoors(GameObject room, int x, int y)
-    {
-        Room newRoomScript = room.GetComponent<Room>();
-
-        //neighbours
-        Room leftRoomScript = GetRoomScriptAt(new Vector2Int(x - 1, y));
-        Room rightRoomScript = GetRoomScriptAt(new Vector2Int(x + 1, y));
-        Room topRoomScript = GetRoomScriptAt(new Vector2Int(x, y + 1));
-        Room bottomRoomScript = GetRoomScriptAt(new Vector2Int(x, y - 1));
-
-        //determine which doors to open based on neighbours
-        if (x > 0 && streetGrid[x - 1, y] != 0)
-        {
-            //Neighbour to the left
-            newRoomScript.OpenDoor(Vector2Int.left);
-            leftRoomScript.OpenDoor(Vector2Int.right);
-        }
-        if (x < gridSizeX - 1 && streetGrid[x + 1, y] != 0)
-        {
-            //Neighbor to the right
-            newRoomScript.OpenDoor(Vector2Int.right);
-            rightRoomScript.OpenDoor(Vector2Int.left);
-        }
-        if (y > 0 && streetGrid[x, y - 1] != 0)
-        {
-            //Neighbour to the bottom
-            newRoomScript.OpenDoor(Vector2Int.down);
-            bottomRoomScript.OpenDoor(Vector2Int.up);
-        }
-        if (y < gridSizeY - 1 && streetGrid[x, y + 1] != 0)
-        {
-            //Neighbour to the top
-            newRoomScript.OpenDoor(Vector2Int.up);
-            topRoomScript.OpenDoor(Vector2Int.down);
-        }
-    }
-
-    //This method gets the room script at the specified index, 
-    //basically can be used to get the neighbours of the room, or
-    //to check if a room exists at the specified index, make a room
-    // a special room, like a boss fight, a shop, etc.
-    Room GetRoomScriptAt(Vector2Int roomIndex)
-    {
-        GameObject roomObject = streetObjects.Find(room => room.GetComponent<Room>().roomIndex == roomIndex);
-        if (roomObject != null)
-            return roomObject.GetComponent<Room>();
-        return null;
-    }
-
-    //This method counts the number of adjacent rooms to the specified room index
-    //basically to check if the room has more than one neighbour so you dont have
-    //4 rooms connected to each other
-    private int CountAdjacentRooms(Vector2Int roomIndex)
-    {
-        int x = roomIndex.x;
-        int y = roomIndex.y;
-        int count = 0;
-
-        if (x > 0 && streetGrid[x - 1, y] != 0) count++; //Left neighbour
-        if (x < gridSizeX - 1 && streetGrid[x + 1, y] != 0) count++; //Right neighbour 
-        if (y > 0 && streetGrid[x, y - 1] != 0) count++; //Bottom neighbour
-        if (y < gridSizeY - 1 && streetGrid[x, y + 1] != 0) count++; //Top neighbour
-
-        return count;
-    }
-
-    //This method gets the position of the street prefab based on the grid index
     private Vector3 GetPositionFromGridIndex(Vector2Int gridIndex)
     {
         int gridX = gridIndex.x;
@@ -263,34 +428,54 @@ public class RoomManager : MonoBehaviour
         return new Vector3(isoX, isoY, 0);
     }
 
-
-    //This method is used to draw the gizmos in the scene view for debugging purposes
     private void OnDrawGizmos()
     {
         Color gizmoColor = new Color(0, 1, 1, 0.05f);
-        
 
-        //size of a street prefab
-        for (int x = streetWidth; x >= 0; x--)
+        // Draw the grid where all the streets will be instantiated
+        if (roomGrid != null)
         {
-            for (int y = 0; y < streetHeight; y++)
+            for (int x = 0; x < gridSizeX; x++)
             {
-                float xOffset = (x + y) / 2f;
-                float yOffset = (x - y) / 4f;
-                Vector3 position = GetPositionFromGridIndex(new Vector2Int(x, y));
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawWireCube(new Vector3(xOffset, yOffset, 0), Vector3.one);
+                for (int y = 0; y < gridSizeY; y++)
+                {
+                    Gizmos.color = gizmoColor;
+                    Gizmos.DrawWireCube(GetPositionFromGridIndex(new Vector2Int(x, y)), new Vector3(streetWidth, streetHeight, 0));
+                }
             }
         }
+    }
 
-        //Draw the grid where all the streets will be instantiated
-        for (int x = 0; x < gridSizeX; x++)
+    // Class to hold data about each room in the grid
+    private class RoomData
+    {
+        public Vector2Int gridIndex;
+        public bool hasRoom = false;
+        public bool enqueued = false;
+        public HashSet<ExitDirection> exits = new HashSet<ExitDirection>();
+        public GameObject roomInstance = null;
+    }
+
+    // Method to count adjacent rooms
+    private int CountAdjacentRooms(Vector2Int roomIndex)
+    {
+        int x = roomIndex.x;
+        int y = roomIndex.y;
+        int count = 0;
+
+        foreach (Vector2Int dir in directions)
         {
-            for (int i = 0; i < gridSizeY; i++)
-            {
-                Gizmos.color = gizmoColor;
-                Gizmos.DrawWireCube(GetPositionFromGridIndex(new Vector2Int(x, i)), new Vector3(streetWidth, streetHeight, 0));
-            }
+            int nx = x + dir.x;
+            int ny = y + dir.y;
+
+            // Check bounds
+            if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
+                continue;
+
+            if (roomGrid[nx, ny].hasRoom)
+                count++;
         }
+
+        return count;
     }
 }

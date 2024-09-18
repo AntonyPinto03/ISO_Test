@@ -613,7 +613,6 @@ GameObject:
   - component: {fileID: 743328905016157677}
   - component: {fileID: 8981265211818681021}
   - component: {fileID: 1474666386069333485}
-  - component: {fileID: 8693064914280373261}
   m_Layer: 0
   m_Name: Left
   m_TagString: Untagged
@@ -851,20 +850,6 @@ TilemapRenderer:
   m_Mode: 0
   m_DetectChunkCullingBounds: 0
   m_MaskInteraction: 0
---- !u!114 &8693064914280373261
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1274916291064914216}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed6243444d8834648b3142153d1c6201, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  exitDirection: 3
-  isConnected: 0
 --- !u!1 &1371370530172004920
 GameObject:
   m_ObjectHideFlags: 0
@@ -20163,10 +20148,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e23285d5a6bedcf4eb532af6c97fb508, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  northExit: {fileID: 9180269905717188785}
-  southExit: {fileID: 7047405842418510118}
-  westExit: {fileID: 1274916291064914216}
-  eastExit: {fileID: 6843029150802077444}
+  hasNorthExit: 1
+  hasSouthExit: 0
+  hasEastExit: 1
+  hasWestExit: 1
 --- !u!1 &3827986882798613529
 GameObject:
   m_ObjectHideFlags: 0
@@ -21946,7 +21931,6 @@ GameObject:
   - component: {fileID: 7210458501666899615}
   - component: {fileID: 2272103901096410567}
   - component: {fileID: 6691836020212916637}
-  - component: {fileID: 1519695936024086723}
   m_Layer: 0
   m_Name: Right
   m_TagString: Untagged
@@ -22184,20 +22168,6 @@ TilemapRenderer:
   m_Mode: 0
   m_DetectChunkCullingBounds: 0
   m_MaskInteraction: 0
---- !u!114 &1519695936024086723
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6843029150802077444}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed6243444d8834648b3142153d1c6201, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  exitDirection: 2
-  isConnected: 0
 --- !u!1 &7047405842418510118
 GameObject:
   m_ObjectHideFlags: 0
@@ -22209,7 +22179,6 @@ GameObject:
   - component: {fileID: 1548003721365024286}
   - component: {fileID: 6405298844596384895}
   - component: {fileID: 123939909318008199}
-  - component: {fileID: 7515441822247618116}
   m_Layer: 0
   m_Name: Bottom
   m_TagString: Untagged
@@ -22461,20 +22430,6 @@ TilemapRenderer:
   m_Mode: 0
   m_DetectChunkCullingBounds: 0
   m_MaskInteraction: 0
---- !u!114 &7515441822247618116
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7047405842418510118}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed6243444d8834648b3142153d1c6201, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  exitDirection: 1
-  isConnected: 0
 --- !u!1 &7105218933202707425
 GameObject:
   m_ObjectHideFlags: 0
@@ -22521,7 +22476,6 @@ GameObject:
   - component: {fileID: 3390419451351579757}
   - component: {fileID: 6069525668705549718}
   - component: {fileID: 6341279178910462313}
-  - component: {fileID: 8946131744896092215}
   m_Layer: 0
   m_Name: Top
   m_TagString: Untagged
@@ -22773,17 +22727,3 @@ TilemapRenderer:
   m_Mode: 0
   m_DetectChunkCullingBounds: 0
   m_MaskInteraction: 0
---- !u!114 &8946131744896092215
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9180269905717188785}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed6243444d8834648b3142153d1c6201, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  exitDirection: 0
-  isConnected: 0

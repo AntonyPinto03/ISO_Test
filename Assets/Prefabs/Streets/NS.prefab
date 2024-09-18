@@ -1744,10 +1744,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e23285d5a6bedcf4eb532af6c97fb508, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  northExit: {fileID: 7176220435543747197}
-  southExit: {fileID: 1824730774341249955}
-  westExit: {fileID: 577184719579584357}
-  eastExit: {fileID: 8658784018223883447}
+  hasNorthExit: 1
+  hasSouthExit: 1
+  hasEastExit: 0
+  hasWestExit: 0
 --- !u!1 &2527201546958047856
 GameObject:
   m_ObjectHideFlags: 0
