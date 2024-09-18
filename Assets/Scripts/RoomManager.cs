@@ -107,10 +107,14 @@ public class RoomManager : MonoBehaviour
     // New variables to track the starting room, last room generated, and furthest room
     private Vector2Int startingRoomIndex;
     private RoomData lastRoomGenerated;
-    private RoomData furthestRoom;
+
+    // Reference to the Grid component
+    private Grid grid;
 
     void Start()
     {
+        grid = GetComponent<Grid>();
+
         // Initialize the exitPrefabDict
         foreach (var pair in exitPrefabPairs)
         {
@@ -190,6 +194,7 @@ public class RoomManager : MonoBehaviour
     private void StartRoomGenerationFromRoom(Vector2Int roomIndex)
     {
         streetQueue.Enqueue(roomIndex);
+        roomGrid[roomIndex.x, roomIndex.y].enqueued = true;
     }
 
     private void TryGenerateRoom(Vector2Int roomIndex)
@@ -230,25 +235,13 @@ public class RoomManager : MonoBehaviour
             }
             else if (!neighborRoom.hasRoom)
             {
-                // Only add direction if we can generate more rooms
-                int remainingRooms = maxStreets - streetCount - streetQueue.Count;
-                if (remainingRooms > 0)
-                {
-                    availableDirs.Add(dir);
-                }
+                availableDirs.Add(dir);
             }
         }
 
         // Decide how many exits we want to create
-        int maxExits = 2 - currentRoom.exits.Count;
-        if (maxExits <= 0)
-        {
-            maxExits = 0;
-        }
-
-        // Remaining rooms we can generate
-        int remainingRoomsAvailable = maxStreets - streetCount - streetQueue.Count;
-        int exitsToCreate = Mathf.Min(Random.Range(1, maxExits + 1), availableDirs.Count, remainingRoomsAvailable);
+        int maxExits = Mathf.Min(maxStreets - streetCount, 4);
+        int exitsToCreate = Mathf.Min(Random.Range(1, maxExits + 1), availableDirs.Count);
 
         // Shuffle availableDirs
         for (int i = 0; i < availableDirs.Count; i++)
@@ -261,11 +254,13 @@ public class RoomManager : MonoBehaviour
 
         // Check for adjacent rooms to prevent clusters of more than 3 rooms
         int adjacentRooms = CountAdjacentRooms(roomIndex);
-        int maxRoomsToConnect = 3 - adjacentRooms;
+        int maxRoomsToConnect = Mathf.Min(3 - adjacentRooms, exitsToCreate);
 
         exitsToCreate = Mathf.Min(exitsToCreate, maxRoomsToConnect);
 
-        for (int i = 0; i < exitsToCreate; i++)
+        int exitsCreated = 0;
+
+        for (int i = 0; i < availableDirs.Count && exitsCreated < exitsToCreate; i++)
         {
             Vector2Int dir = availableDirs[i];
             int nx = x + dir.x;
@@ -273,17 +268,28 @@ public class RoomManager : MonoBehaviour
 
             RoomData neighborRoom = roomGrid[nx, ny];
 
-            // Set our exit towards the direction
-            currentRoom.exits.Add(dirToExit[dir]);
-
-            // Set neighbor's exit towards us
-            neighborRoom.exits.Add(dirToOppositeExit[dir]);
-
-            // Enqueue neighbor for processing if not already enqueued
-            if (!neighborRoom.enqueued)
+            // Only proceed if we haven't reached maxStreets
+            if (streetCount + streetQueue.Count < maxStreets)
             {
-                neighborRoom.enqueued = true;
-                streetQueue.Enqueue(new Vector2Int(nx, ny));
+                // Set our exit towards the direction
+                currentRoom.exits.Add(dirToExit[dir]);
+
+                // Set neighbor's exit towards us
+                neighborRoom.exits.Add(dirToOppositeExit[dir]);
+
+                // Enqueue neighbor for processing if not already enqueued
+                if (!neighborRoom.enqueued)
+                {
+                    neighborRoom.enqueued = true;
+                    streetQueue.Enqueue(new Vector2Int(nx, ny));
+                }
+
+                exitsCreated++;
+            }
+            else
+            {
+                // Can't create more rooms, so we skip adding this exit
+                continue;
             }
         }
 
@@ -303,10 +309,9 @@ public class RoomManager : MonoBehaviour
             // Pick a random prefab
             GameObject prefabToInstantiate = possiblePrefabs[Random.Range(0, possiblePrefabs.Length)];
 
-            // Instantiate the prefab
+            // Instantiate the prefab as a child of the Grid GameObject
             Vector3 position = GetPositionFromGridIndex(roomIndex);
             GameObject roomInstance = Instantiate(prefabToInstantiate, position, Quaternion.identity, transform);
-
 
             // Set the room index
             Room roomScript = roomInstance.GetComponent<Room>();

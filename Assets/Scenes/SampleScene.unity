@@ -122,162 +122,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &30163744
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 30163746}
-  - component: {fileID: 30163747}
-  m_Layer: 0
-  m_Name: RoomManager_Iso
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &30163746
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 30163744}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &30163747
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 30163744}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 993321b7fae506b45b75c8a011879fc8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  exitPrefabPairs:
-  - exitsKey:
-      North: 0
-      South: 1
-      East: 1
-      West: 1
-    prefabs:
-    - {fileID: 1368663904244070683, guid: da90051211985c14285e567a3b460ff6, type: 3}
-  - exitsKey:
-      North: 1
-      South: 1
-      East: 1
-      West: 0
-    prefabs:
-    - {fileID: 3822411898269412984, guid: f658b44eb4ce1884e93e18160d175037, type: 3}
-  - exitsKey:
-      North: 1
-      South: 1
-      East: 0
-      West: 1
-    prefabs:
-    - {fileID: 6301538495110614242, guid: 8e2a45df3c73063419c106dac5f1571f, type: 3}
-  - exitsKey:
-      North: 1
-      South: 0
-      East: 1
-      West: 1
-    prefabs:
-    - {fileID: 1819254396589368804, guid: 32dc3c823334fc148b5aad7665c619cc, type: 3}
-  - exitsKey:
-      North: 1
-      South: 1
-      East: 0
-      West: 0
-    prefabs:
-    - {fileID: 2395165809017504080, guid: c931812521f8ef84ea11e02561a152ed, type: 3}
-  - exitsKey:
-      North: 0
-      South: 0
-      East: 1
-      West: 1
-    prefabs:
-    - {fileID: 4440723048414814560, guid: 4f0a99bbaf89b9447961945556460976, type: 3}
-  - exitsKey:
-      North: 1
-      South: 0
-      East: 1
-      West: 0
-    prefabs:
-    - {fileID: 7387024591422364672, guid: 2a233cf5cbc58d34f9367a891b48cb9d, type: 3}
-  - exitsKey:
-      North: 1
-      South: 0
-      East: 0
-      West: 1
-    prefabs:
-    - {fileID: 7520195911746678254, guid: 08c0f8574f252a6499ab9124cd60a0a3, type: 3}
-  - exitsKey:
-      North: 0
-      South: 1
-      East: 1
-      West: 0
-    prefabs:
-    - {fileID: 956191075732113295, guid: 7a3214c72fe95944390566fad90d726e, type: 3}
-  - exitsKey:
-      North: 0
-      South: 1
-      East: 0
-      West: 1
-    prefabs:
-    - {fileID: 3062082078053048658, guid: 79baeec4c9c7fc24285172891ab9c41d, type: 3}
-  - exitsKey:
-      North: 1
-      South: 0
-      East: 0
-      West: 0
-    prefabs:
-    - {fileID: 2395165809017504080, guid: c9dcb764444d9334f889926c04d65eb4, type: 3}
-  - exitsKey:
-      North: 0
-      South: 1
-      East: 0
-      West: 0
-    prefabs:
-    - {fileID: 2395165809017504080, guid: a070c5a8c04759d498bfb8bde68e0368, type: 3}
-  - exitsKey:
-      North: 0
-      South: 0
-      East: 1
-      West: 0
-    prefabs:
-    - {fileID: 4440723048414814560, guid: dc08d899e49aedc4696c55a9f90854d9, type: 3}
-  - exitsKey:
-      North: 0
-      South: 0
-      East: 0
-      West: 1
-    prefabs:
-    - {fileID: 4440723048414814560, guid: ec1b52a1694af0e47ad1585eb3cffadb, type: 3}
-  - exitsKey:
-      North: 1
-      South: 1
-      East: 1
-      West: 1
-    prefabs:
-    - {fileID: 7523070630855252441, guid: b6646b7f88367fd4ca986d8fe74a9326, type: 3}
-  maxStreets: 22
-  minStreets: 14
-  streetWidth: 50
-  streetHeight: 50
-  gridSizeX: 10
-  gridSizeY: 10
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -534,12 +378,12 @@ MonoBehaviour:
       West: 1
     prefabs:
     - {fileID: 4225861385553535250, guid: fbd2f18f6d5535741a2d2eb697b9cb07, type: 3}
-  maxStreets: 20
-  minStreets: 10
+  maxStreets: 27
+  minStreets: 18
   streetWidth: 42
   streetHeight: 42
-  gridSizeX: 10
-  gridSizeY: 10
+  gridSizeX: 13
+  gridSizeY: 15
 --- !u!1 &1922926238
 GameObject:
   m_ObjectHideFlags: 0
@@ -20650,6 +20494,5 @@ TilemapRenderer:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1914555030}
   - {fileID: 1922926242}
-  - {fileID: 30163746}
+  - {fileID: 1914555030}
