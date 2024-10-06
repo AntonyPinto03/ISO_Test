@@ -159,6 +159,10 @@ public class RoomManager : MonoBehaviour
 
             // Perform cleanup to remove exits leading to nowhere
             CleanupExits();
+            
+            // Ensure exits between rooms are consistent
+            EnsureExitsConsistency();
+
 
             // Find the furthest room from the starting room
             float maxDistance = -1f;
@@ -198,201 +202,276 @@ public class RoomManager : MonoBehaviour
     }
 
     private void TryGenerateRoom(Vector2Int roomIndex)
+{
+    int x = roomIndex.x;
+    int y = roomIndex.y;
+
+    // Check bounds
+    if (x < 0 || x >= gridSizeX || y < 0 || y >= gridSizeY)
+        return;
+
+    RoomData currentRoom = roomGrid[x, y];
+
+    // If this room already has been processed, return
+    if (currentRoom.hasRoom)
+        return;
+
+    currentRoom.hasRoom = true;
+
+    List<Vector2Int> availableDirs = new List<Vector2Int>();
+
+    // First, collect all available directions
+    foreach (Vector2Int dir in directions)
     {
-        int x = roomIndex.x;
-        int y = roomIndex.y;
+        int nx = x + dir.x;
+        int ny = y + dir.y;
 
         // Check bounds
-        if (x < 0 || x >= gridSizeX || y < 0 || y >= gridSizeY)
-            return;
+        if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
+            continue;
 
-        RoomData currentRoom = roomGrid[x, y];
+        availableDirs.Add(dir);
+    }
 
-        // If this room already has been processed, return
-        if (currentRoom.hasRoom)
-            return;
+    // Decide how many exits we want to create
+    int maxExits = Mathf.Min(maxStreets - streetCount, 4);
+    int exitsToCreate = Mathf.Min(Random.Range(1, maxExits + 1), availableDirs.Count);
 
-        currentRoom.hasRoom = true;
+    // Shuffle availableDirs
+    for (int i = 0; i < availableDirs.Count; i++)
+    {
+        Vector2Int temp = availableDirs[i];
+        int randomIndex = Random.Range(i, availableDirs.Count);
+        availableDirs[i] = availableDirs[randomIndex];
+        availableDirs[randomIndex] = temp;
+    }
 
-        List<Vector2Int> availableDirs = new List<Vector2Int>();
+    int exitsCreated = 0;
 
-        // Check for existing neighbors and set exits accordingly
-        foreach (Vector2Int dir in directions)
+    for (int i = 0; i < availableDirs.Count && exitsCreated < exitsToCreate; i++)
+    {
+        Vector2Int dir = availableDirs[i];
+        int nx = x + dir.x;
+        int ny = y + dir.y;
+
+        // Check bounds
+        if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
+            continue;
+
+        RoomData neighborRoom = roomGrid[nx, ny];
+
+        ExitDirection exitDir = dirToExit[dir];
+        ExitDirection oppositeExitDir = dirToOppositeExit[dir];
+
+        // Set our exit towards the neighbor
+        currentRoom.exits.Add(exitDir);
+
+        // Ensure neighbor's exit towards us
+        neighborRoom.exits.Add(oppositeExitDir);
+
+        // Enqueue neighbor for processing if not already enqueued
+        if (!neighborRoom.enqueued)
         {
-            int nx = x + dir.x;
-            int ny = y + dir.y;
-
-            // Check bounds
-            if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
-                continue;
-
-            RoomData neighborRoom = roomGrid[nx, ny];
-
-            // If neighbor room exists and has exit towards us
-            if (neighborRoom.hasRoom && neighborRoom.exits.Contains(dirToOppositeExit[dir]))
-            {
-                currentRoom.exits.Add(dirToExit[dir]);
-            }
-            else if (!neighborRoom.hasRoom)
-            {
-                availableDirs.Add(dir);
-            }
+            neighborRoom.enqueued = true;
+            streetQueue.Enqueue(new Vector2Int(nx, ny));
         }
 
-        // Decide how many exits we want to create
-        int maxExits = Mathf.Min(maxStreets - streetCount, 4);
-        int exitsToCreate = Mathf.Min(Random.Range(1, maxExits + 1), availableDirs.Count);
+        exitsCreated++;
+    }
 
-        // Shuffle availableDirs
-        for (int i = 0; i < availableDirs.Count; i++)
+    // Now, create an ExitsKey for lookup
+    ExitsKey currentExitsKey = new ExitsKey
+    {
+        North = currentRoom.exits.Contains(ExitDirection.North),
+        South = currentRoom.exits.Contains(ExitDirection.South),
+        East = currentRoom.exits.Contains(ExitDirection.East),
+        West = currentRoom.exits.Contains(ExitDirection.West)
+    };
+
+    // Now, pick a prefab based on currentRoom.exits
+    GameObject[] possiblePrefabs;
+    if (exitPrefabDict.TryGetValue(currentExitsKey, out possiblePrefabs))
+    {
+        // Pick a random prefab
+        GameObject prefabToInstantiate = possiblePrefabs[Random.Range(0, possiblePrefabs.Length)];
+
+        // Instantiate the prefab as a child of the Grid GameObject
+        Vector3 position = GetPositionFromGridIndex(roomIndex);
+        GameObject roomInstance = Instantiate(prefabToInstantiate, position, Quaternion.identity, transform);
+
+        // Set the room index
+        Room roomScript = roomInstance.GetComponent<Room>();
+        roomScript.roomIndex = roomIndex;
+        roomScript.SetExits(currentExitsKey);
+
+        // Name the room
+        roomInstance.name = $"Street-{streetCount} {roomIndex}";
+
+        // Add to streetObjects list
+        streetObjects.Add(roomInstance);
+
+        // Assign to currentRoom
+        currentRoom.roomInstance = roomInstance;
+    }
+    else
+    {
+        // No prefab found for this exit combination
+        Debug.LogWarning($"No prefab found for exits: N-{currentExitsKey.North}, S-{currentExitsKey.South}, E-{currentExitsKey.East}, W-{currentExitsKey.West}");
+    }
+
+    // Increment streetCount
+    streetCount++;
+
+    // Keep track of the last room generated
+    lastRoomGenerated = currentRoom;
+}
+    
+private void EnsureExitsConsistency()
+{
+    foreach (var roomData in roomGrid)
+    {
+        if (roomData.hasRoom)
         {
-            Vector2Int temp = availableDirs[i];
-            int randomIndex = Random.Range(i, availableDirs.Count);
-            availableDirs[i] = availableDirs[randomIndex];
-            availableDirs[randomIndex] = temp;
-        }
+            int x = roomData.gridIndex.x;
+            int y = roomData.gridIndex.y;
 
-        // Check for adjacent rooms to prevent clusters of more than 3 rooms
-        int adjacentRooms = CountAdjacentRooms(roomIndex);
-        int maxRoomsToConnect = Mathf.Min(3 - adjacentRooms, exitsToCreate);
-
-        exitsToCreate = Mathf.Min(exitsToCreate, maxRoomsToConnect);
-
-        int exitsCreated = 0;
-
-        for (int i = 0; i < availableDirs.Count && exitsCreated < exitsToCreate; i++)
-        {
-            Vector2Int dir = availableDirs[i];
-            int nx = x + dir.x;
-            int ny = y + dir.y;
-
-            RoomData neighborRoom = roomGrid[nx, ny];
-
-            // Only proceed if we haven't reached maxStreets
-            if (streetCount + streetQueue.Count < maxStreets)
+            foreach (Vector2Int dir in directions)
             {
-                // Set our exit towards the direction
-                currentRoom.exits.Add(dirToExit[dir]);
+                int nx = x + dir.x;
+                int ny = y + dir.y;
 
-                // Set neighbor's exit towards us
-                neighborRoom.exits.Add(dirToOppositeExit[dir]);
+                // Check bounds
+                if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
+                    continue;
 
-                // Enqueue neighbor for processing if not already enqueued
-                if (!neighborRoom.enqueued)
+                RoomData neighborRoom = roomGrid[nx, ny];
+
+                ExitDirection exitDir = dirToExit[dir];
+                ExitDirection oppositeExitDir = dirToOppositeExit[dir];
+
+                if (neighborRoom.hasRoom)
                 {
-                    neighborRoom.enqueued = true;
-                    streetQueue.Enqueue(new Vector2Int(nx, ny));
-                }
+                    // If current room has an exit towards neighbor, ensure neighbor has an exit towards current room
+                    if (roomData.exits.Contains(exitDir))
+                    {
+                        neighborRoom.exits.Add(oppositeExitDir);
+                    }
 
-                exitsCreated++;
+                    // If neighbor has an exit towards current room, ensure current room has an exit towards neighbor
+                    if (neighborRoom.exits.Contains(oppositeExitDir))
+                    {
+                        roomData.exits.Add(exitDir);
+                    }
+                }
+                else
+                {
+                    // Remove exits leading to non-existent rooms
+                    roomData.exits.Remove(exitDir);
+                }
+            }
+
+            // Update the room's ExitsKey
+            ExitsKey currentExitsKey = new ExitsKey
+            {
+                North = roomData.exits.Contains(ExitDirection.North),
+                South = roomData.exits.Contains(ExitDirection.South),
+                East = roomData.exits.Contains(ExitDirection.East),
+                West = roomData.exits.Contains(ExitDirection.West)
+            };
+
+            // Update the Room component to reflect the changes
+            if (roomData.roomInstance != null)
+            {
+                Room roomScript = roomData.roomInstance.GetComponent<Room>();
+                roomScript.SetExits(currentExitsKey);
+            }
+        }
+    }
+}
+
+    private void CleanupExits()
+{
+    foreach (var roomData in roomGrid)
+    {
+        if (roomData.hasRoom)
+        {
+            HashSet<ExitDirection> validExits = new HashSet<ExitDirection>();
+
+            int x = roomData.gridIndex.x;
+            int y = roomData.gridIndex.y;
+
+            foreach (ExitDirection exit in roomData.exits)
+            {
+                Vector2Int dir = exitToDir[exit];
+                int nx = x + dir.x;
+                int ny = y + dir.y;
+
+                // Check bounds
+                if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
+                    continue;
+
+                RoomData neighborRoom = roomGrid[nx, ny];
+
+                // If neighbor exists and has an exit towards us
+                if (neighborRoom.hasRoom && neighborRoom.exits.Contains(dirToOppositeExit[dir]))
+                {
+                    validExits.Add(exit);
+                }
+            }
+
+            // Update the room's exits to only include valid exits
+            roomData.exits = validExits;
+
+            // Create a new ExitsKey based on the valid exits
+            ExitsKey currentExitsKey = new ExitsKey
+            {
+                North = roomData.exits.Contains(ExitDirection.North),
+                South = roomData.exits.Contains(ExitDirection.South),
+                East = roomData.exits.Contains(ExitDirection.East),
+                West = roomData.exits.Contains(ExitDirection.West)
+            };
+
+            // Destroy the old room instance
+            if (roomData.roomInstance != null)
+            {
+                Destroy(roomData.roomInstance);
+                streetObjects.Remove(roomData.roomInstance);
+            }
+
+            // Instantiate a new prefab based on the updated exits
+            GameObject[] possiblePrefabs;
+            if (exitPrefabDict.TryGetValue(currentExitsKey, out possiblePrefabs))
+            {
+                // Pick a random prefab
+                GameObject prefabToInstantiate = possiblePrefabs[Random.Range(0, possiblePrefabs.Length)];
+
+                // Instantiate the new prefab
+                Vector3 position = GetPositionFromGridIndex(roomData.gridIndex);
+                GameObject roomInstance = Instantiate(prefabToInstantiate, position, Quaternion.identity, transform);
+
+                // Set the room index and exits
+                Room roomScript = roomInstance.GetComponent<Room>();
+                roomScript.roomIndex = roomData.gridIndex;
+                roomScript.SetExits(currentExitsKey);
+
+                // Name the room
+                roomInstance.name = $"Street-{roomData.gridIndex}";
+
+                // Add to streetObjects list
+                streetObjects.Add(roomInstance);
+
+                // Assign to currentRoom
+                roomData.roomInstance = roomInstance;
             }
             else
             {
-                // Can't create more rooms, so we skip adding this exit
-                continue;
-            }
-        }
-
-        // Now, create an ExitsKey for lookup
-        ExitsKey currentExitsKey = new ExitsKey
-        {
-            North = currentRoom.exits.Contains(ExitDirection.North),
-            South = currentRoom.exits.Contains(ExitDirection.South),
-            East = currentRoom.exits.Contains(ExitDirection.East),
-            West = currentRoom.exits.Contains(ExitDirection.West)
-        };
-
-        // Now, pick a prefab based on currentRoom.exits
-        GameObject[] possiblePrefabs;
-        if (exitPrefabDict.TryGetValue(currentExitsKey, out possiblePrefabs))
-        {
-            // Pick a random prefab
-            GameObject prefabToInstantiate = possiblePrefabs[Random.Range(0, possiblePrefabs.Length)];
-
-            // Instantiate the prefab as a child of the Grid GameObject
-            Vector3 position = GetPositionFromGridIndex(roomIndex);
-            GameObject roomInstance = Instantiate(prefabToInstantiate, position, Quaternion.identity, transform);
-
-            // Set the room index
-            Room roomScript = roomInstance.GetComponent<Room>();
-            roomScript.roomIndex = roomIndex;
-            roomScript.SetExits(currentExitsKey);
-
-            // Name the room
-            roomInstance.name = $"Street-{streetCount} {roomIndex}";
-
-            // Add to streetObjects list
-            streetObjects.Add(roomInstance);
-
-            // Assign to currentRoom
-            currentRoom.roomInstance = roomInstance;
-        }
-        else
-        {
-            // No prefab found for this exit combination
-            Debug.LogWarning($"No prefab found for exits: N-{currentExitsKey.North}, S-{currentExitsKey.South}, E-{currentExitsKey.East}, W-{currentExitsKey.West}");
-        }
-
-        // Increment streetCount
-        streetCount++;
-
-        // Keep track of the last room generated
-        lastRoomGenerated = currentRoom;
-    }
-
-    private void CleanupExits()
-    {
-        foreach (var roomData in roomGrid)
-        {
-            if (roomData.hasRoom)
-            {
-                HashSet<ExitDirection> validExits = new HashSet<ExitDirection>();
-
-                int x = roomData.gridIndex.x;
-                int y = roomData.gridIndex.y;
-
-                foreach (ExitDirection exit in roomData.exits)
-                {
-                    Vector2Int dir = exitToDir[exit];
-                    int nx = x + dir.x;
-                    int ny = y + dir.y;
-
-                    // Check bounds
-                    if (nx < 0 || nx >= gridSizeX || ny < 0 || ny >= gridSizeY)
-                        continue;
-
-                    RoomData neighborRoom = roomGrid[nx, ny];
-
-                    // If neighbor exists and has an exit towards us
-                    if (neighborRoom.hasRoom && neighborRoom.exits.Contains(dirToOppositeExit[dir]))
-                    {
-                        validExits.Add(exit);
-                    }
-                }
-
-                // Update the room's exits to only include valid exits
-                roomData.exits = validExits;
-
-                // Update the room's ExitsKey
-                ExitsKey currentExitsKey = new ExitsKey
-                {
-                    North = roomData.exits.Contains(ExitDirection.North),
-                    South = roomData.exits.Contains(ExitDirection.South),
-                    East = roomData.exits.Contains(ExitDirection.East),
-                    West = roomData.exits.Contains(ExitDirection.West)
-                };
-
-                // Update the Room component to reflect the changes
-                if (roomData.roomInstance != null)
-                {
-                    Room roomScript = roomData.roomInstance.GetComponent<Room>();
-                    roomScript.SetExits(currentExitsKey);
-
-                    // Optionally, update the visuals of the room here
-                }
+                // No prefab found for this exit combination
+                Debug.LogWarning($"No prefab found for exits: N-{currentExitsKey.North}, S-{currentExitsKey.South}, E-{currentExitsKey.East}, W-{currentExitsKey.West}");
             }
         }
     }
+}
+
 
     private void RegenerateRooms()
     {
